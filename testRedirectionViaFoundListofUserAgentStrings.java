@@ -30,7 +30,7 @@ import static com.selenium.environment.MyDriverManager.*;
 //import static com.selenium.environment.MyDriverManager.aDriver;
 
 /**
- * Created by Iain Mounsey-Smith on 23/01/2016...
+ * Created by Iain Mounsey-Smith on 23/01/2016....
  */
 
 public class testRedirectionViaFoundListofUserAgentStrings {
