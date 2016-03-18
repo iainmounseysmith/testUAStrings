@@ -10,22 +10,25 @@ import org.junit.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.firefox.internal.ProfilesIni;
+import org.openqa.selenium.phantomjs.PhantomJSDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.WebDriverWait;
-
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import java.io.File;
 import java.io.FileFilter;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static com.selenium.environment.EnvironmentUnderTest.getUrl;
+import static com.selenium.environment.HelperClasses.customisePhantom;
 import static com.selenium.environment.MyDriverManager.*;
 //import static com.selenium.environment.MyDriverManager.aDriver;
 
@@ -47,6 +50,7 @@ public class testRedirectionViaFoundListofUserAgentStrings {
     public static String testurl = "http://www.trademe.co.nz";
     public static String testurlStuff = "http://www.stuff.co.nz";
     public static String testurlBBC ="http://www.bbc.co.uk";
+   public static String useThisUserAgent2="";
 
     @BeforeClass
     public static void setupDriver() {
@@ -75,69 +79,7 @@ public class testRedirectionViaFoundListofUserAgentStrings {
         //wait = new WebDriverWait(driver, 10, 50);
     }
 
-    @Test //http://useragentstring.com/pages/All/
-    public void testReplacingUserAgentString() {
-//getWebdriverProfileDirectoryWithLatestLastModificationDate
-        //MyDriverManager.aDriver = get("http://useragentstring.com/pages/Mobile%20Browserlist/");
-        //String testua = "Mozilla/5.0 (Linux; U; Android";
-        String testua = "Mozilla/5.0";
-        //String testua = "Mozilla/5.0 (compatible; MSIE 9.0; Windows Phone OS 7.5; Trident/5.0; IEMobile/9.0)";
-        String userAgentStringRepository1 = "http://useragentstring.com/pages/Mobile%20Browserlist/";//primary authoritive list of ua strings for mobile devices
-        String userAgentStringRepository2 = "http://useragentstring.com/pages/Browserlist/";//secondary authoritive list of ua strings for mobile devices
-        List<String> listofURLsContainingUAstrings = new ArrayList<String>();
-        listofURLsContainingUAstrings.add(userAgentStringRepository1);
-        //listofURLsContainingUAstrings.add(userAgentStringRepository2); //unlikely to need a SECOND authoritive list of mobile ua strings but what the hey
-
-        for (String individualRepository : listofURLsContainingUAstrings) {
-            System.out.println("Individual Repository " + individualRepository);
-            aDriver.get(individualRepository);//i don't need get method to return a driver as I already have one
-            //get(individualRepository);
-            List<WebElement> userAgentStringsFound = aDriver.findElements(By.cssSelector("ul>li>a"));
-            List<String> UARedirectPASS = new ArrayList<String>();// these UAStrings redirect successfully
-            List<String> UARedirectFAIL = new ArrayList<String>();// these UAStrings do NOT redirect successfully
-            Integer totalCount = 0;
-            Integer targetCount = 0;
-            for (WebElement userAgentString : userAgentStringsFound) {
-                totalCount++;
-                //System.out.println("userAgentString " + userAgentString.getText());
-                if (userAgentString.getText().contains(testua)) {
-                    //System.out.println("Debugging using testua " + userAgentString.getText());
-                    changeFireFoxUserAgent(userAgentString.getText());
-                    newDriver.navigate().to(testurl);
-                                        if (newDriver.getCurrentUrl().startsWith("http://www")) {
-                        System.out.println("Yes indeed itstarts with www");
-                        UARedirectFAIL.add(userAgentString.getText());
-                    } else {
-                        UARedirectPASS.add(userAgentString.getText());
-                    }
-                }
-            }
-            System.out.println("The total number of mobile user agent strings found at " + individualRepository + " is  " + totalCount + "\n-------------------------------");
-
-            if (UARedirectPASS.size() == 0) {
-                System.out.println("No UA Strings successfully redirected");
-            } else{
-                System.out.println("The number of UA strings to pass was " + UARedirectPASS.size());
-                System.out.println("These string passed;");
-                for (String individualUAString:UARedirectPASS){
-                    System.out.println(individualUAString);
-                }
-                System.out.println("\n=====");
-        }
-            if (UARedirectFAIL.size() == 0) {
-                System.out.println("No UA Strings failed redirection");
-            } else{
-                System.out.println("The number of UA strings to fail was " + UARedirectFAIL.size());
-                System.out.println("Theses string failed;");
-                for (String individualUAString:UARedirectFAIL){
-                    System.out.println(individualUAString);
-                }
-                System.out.println("\n=====");
-            }
-        }
-    }
-
-    public  WebDriver changeFireFoxUserAgent(String useThisUserAgent) {
+      public  WebDriver changeFireFoxUserAgent(String useThisUserAgent) {
     //https://code.google.com/p/selenium/wiki/FirefoxDriver
     String tempDirectoryLocation ="C:\\Users\\Owner\\AppData\\Local\\Temp\\";
     String fireFoxWebdriverProfileDirecory = tempDirectoryLocation+getWebdriverProfileDirectoryWithLatestLastModificationDate();
@@ -153,7 +95,23 @@ public class testRedirectionViaFoundListofUserAgentStrings {
     //aDriver.get("about:support");
         //aDriver.get(testurl);
 }
+    public WebDriver changeChromeDriverUserAgent(String useThisUserAgent){
+        Map<String, String> mobileEmulation = new HashMap<String, String>();
+        mobileEmulation.put("userAgent", useThisUserAgent);
+        Map<String, Object> chromeOptions = new HashMap<String, Object>();
+        chromeOptions.put("mobileEmulation", mobileEmulation);
+        DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+        capabilities.setCapability(ChromeOptions.CAPABILITY, chromeOptions);
+        newDriver = new ChromeDriver(capabilities);
+        return newDriver;
+    }
 
+   public WebDriver changePhantomUserAgent(){//we can set the system property snd then re-use the customisePhantom method
+
+    customisePhantom();
+    newDriver=MyDriverManager.aDriver;
+    return newDriver;
+}
 /*default user agent
 win7 ff43
  	Mozilla/5.0 (Windows NT 6.3; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0*/
@@ -187,6 +145,7 @@ win7 ff43
     @Test //http://useragentstring.com/pages/All/
     //this version reports on the re-directed to currenturl, just for fun...as it uses a 2d array
     public void testReplacingUserAgentString2() {
+
 //getWebdriverProfileDirectoryWithLatestLastModificationDate
         //MyDriverManager.aDriver = get("http://useragentstring.com/pages/Mobile%20Browserlist/");
         String uaFilter = "Mozilla/5.0 (Linux; U; Android 4.0.3; ";
@@ -233,8 +192,24 @@ win7 ff43
             for (String userAgentString : filteredUAStrings) {
                 //int totalCountMinusOne=totalCount-1;
                 useragentgettext = userAgentString;
-                changeFireFoxUserAgent(userAgentString);
-                newDriver.navigate().to(testurlBBC);
+                useThisUserAgent2=userAgentString;
+                //System.out.println("GCB is " + getCurrentBrowser());
+               //System.out.println("useThisDriver is " + useThisDriver.toString());
+                //note - don't think you cand chnage the ie drivers ua string
+                switch(getCurrentBrowser()){
+                             case "FIREFOX":
+                                 changeFireFoxUserAgent(useThisUserAgent2);//we don't re-use HelperClasses.customiseFireFox as that does not change our profile directory....which we need for testng UA redirection
+                             break;
+                             case  "PHANTOM":
+                                 changePhantomUserAgent();//changePhantomUserAgent will run HelperClasses.customisePhantom which will use useThisUserAgent2 variable
+                                  break;
+                            case  "GOOGLECHROME":
+                            changeChromeDriverUserAgent(useThisUserAgent2); //didn't attempt to re-use HelperClasses.customiseChrome as it's a little complicated
+                                    break;
+                            }
+                newDriver.navigate().to(testurl);
+                String bbcHomePageTitle="BBC - Homepage";//this only used when developing the script re. phantomjs...making sure it works headless...obviously not applicable to other test sites...
+                //assertThat(newDriver.getTitle(), is(bbcHomePageTitle));//this only used when developing the script re. phantomjs...making sure it works headless..obviously not applicable to other test sites..
                 //System.out.println("useragentgettext " + useragentgettext);
                 String redirectedToURL = newDriver.getCurrentUrl();
                 newDriver.close();//close browser as we no longer need it
